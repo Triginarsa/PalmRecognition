@@ -1,0 +1,79 @@
+function ROIout = findROI(path, imname, roisz, xOffset)
+A = imread([path imname]);
+G = fspecial('gaussian',[5 5], 2);      % Gaussian Filter
+C = imfilter(A, G, 'same'); %mengaplikasikan filter gaussian ke citra asli
+C = rgb2gray(C); %grayscale
+[w, h] = size(C); %membuat matriks ukuran C
+
+
+BW = imbinarize(C, graythresh(C));           % Binerisasi
+[B,~,~] = bwboundaries(BW);             
+
+centroid = regionprops(BW,'Centroid');  
+centroid = centroid.Centroid;
+
+
+outline = flipud(B{1});    
+
+regionLine = zeros(length(outline),3);  
+
+for i = 1:length(outline)
+    regionLine(i,:) = [outline(i,2) outline(i,1) sqrt((outline(i,2)-centroid(1))^2+(outline(i,1)-centroid(2))^2)];
+end
+
+
+[~, i] = findpeaks(smooth(-regionLine(:,3),50),'MINPEAKDISTANCE',10,'MINPEAKHEIGHT',mean(-regionLine(:,3)));
+
+if numel(regexp(imname,'_l_'))
+    coordinates = [regionLine(i(1:2),1:2); regionLine(i(end-1:end),1:2)];
+else 
+    coordinates = [regionLine(i(1:3),1:2); regionLine(i(end),1:2)];
+end
+
+sortCoord = sortrows(coordinates,2);
+
+sc = lineScore(sortCoord);             
+if sc(1)<sc(2)
+    sortCoord(4,:) = [];               
+else
+    sortCoord(1,:) = [];                
+end
+
+
+zeroIm1 = zeros(w,h);
+zeroIm2 = zeros(w,h);
+
+
+zeroIm1(round(sortCoord(1,2))-2:round(sortCoord(1,2))+2,round(sortCoord(1,1))-2:round(sortCoord(1,1))+2) = 255;
+zeroIm2(round(sortCoord(3,2))-2:round(sortCoord(3,2))+2,round(sortCoord(3,1))-2:round(sortCoord(3,1))+2) = 255;
+
+grad = (atan((sortCoord(3,2)-sortCoord(1,2))/(sortCoord(3,1)-sortCoord(1,1))))*180/pi;
+assignin('base','angle',grad);
+if numel(regexp(imname,'_l_')) 
+    rotPalm = imrotate(A,grad+90);         
+    rotzeroIm1 = imrotate(zeroIm1,grad+90);
+    rotzeroIm2 = imrotate(zeroIm2,grad+90);
+
+else
+    rotPalm = imrotate(A,grad-90);         
+    rotzeroIm1 = imrotate(zeroIm1,grad-90);
+    rotzeroIm2 = imrotate(zeroIm2,grad-90);
+
+end
+
+[top2, top1] = find(rotzeroIm1==255);         
+[bottom2, bottom1] = find(rotzeroIm2==255);       
+
+new_c = [round((top1(1)+bottom1(1))/2)+xOffset round(((min(top2)+max(top2))/2+bottom2(1))/2)];
+
+ROIout = zeros(roisz,roisz);
+try
+    ROIout = rotPalm(new_c(2)-round(roisz/2)+1:new_c(2)+round(roisz/2),new_c(1)-round(roisz/2)+1:new_c(1)+round(roisz/2));
+    
+catch err
+    if (strcmp(err.identifier,'MATLAB:badsubscript'))
+        return
+    else
+        rethrow(err)
+    end
+end
