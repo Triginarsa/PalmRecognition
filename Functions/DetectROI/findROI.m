@@ -1,15 +1,15 @@
 function ROIout = findROI(path, imname, roisz, xOffset)
 A = imread([path imname]);
-G = fspecial('gaussian',[5 5], 2);      % Gaussian Filter
-C = imfilter(A, G, 'same'); %mengaplikasikan filter gaussian ke citra asli
-C = rgb2gray(C); %grayscale
-[w, h] = size(C); %membuat matriks ukuran C
+G = fspecial('gaussian',[5 5], 2);
+C = imfilter(A, G, 'same'); 
+C = rgb2gray(C); 
+[w, h] = size(C); 
 
 
-BW = imbinarize(C, graythresh(C));           % Binerisasi
+BW = imbinarize(C, graythresh(C));
 [B,~,~] = bwboundaries(BW);             
 
-centroid = regionprops(BW,'Centroid');  
+centroid = regionprops(BW,'Centroid');
 centroid = centroid.Centroid;
 
 

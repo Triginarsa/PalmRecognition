@@ -40,8 +40,8 @@ for i=1:5
     title(['Citra 0' num2str(i) '.jpg']);
 end
 
-dif = xor(GABORL(1).image,GABORL(2).image);
-total = nnz(dif) %mencari nilai 1 pada matrik
+dif = xor(GABORL(1).image,GABORL(4).image);
+skorPerbedaan = nnz(dif) %mencari nilai 1 pada matrik
 figure;
 suptitle('Perbedaan Citra');
 imshow(dif);
